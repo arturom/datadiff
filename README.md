@@ -15,6 +15,27 @@ A library and CLI tool to find differences between a master data source and a sl
   - mysql
   - elasticsearch ~0.90.13, ~1.0
 
+
+### Usage
+```bash
+$ ./datadiff -h
+Usage of ./datadiff:
+  -interval int
+        Initial histogram interval (default 1000)
+  -mconf string
+        Master configuration string (default "{}")
+  -mconn string
+        Master connection string
+  -mdriver string
+        Master driver [elasticsearch|mysql]
+  -sconf string
+        Slave configuration string (default "{}")
+  -sconn string
+        Slave connection string
+  -sdriver string
+        Slave driver [elasticsearch|mysql]
+```
+
 ### Sample Command Line Usage
 ```bash
  datadiff -interval 200 \

@@ -17,8 +17,6 @@ A library and CLI tool to find differences between a master data source and a sl
   - mysql
   - elasticsearch ~0.90.13, ~1.0
 
-#### MySQL
-
 ### Usage
 ```bash
 $ ./datadiff -h

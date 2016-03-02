@@ -1,4 +1,6 @@
 # datadiff
+[![Go Report Card](https://goreportcard.com/badge/github.com/arturom/datadiff)](https://goreportcard.com/report/github.com/arturom/datadiff)
+
 A library and CLI tool to find differences between a master data source and a slave data source. Two data sources are equal if they contain the same numeric IDs. Rather than comparing record by record, this library compares [histogram](https://en.wikipedia.org/wiki/Histogram)-like aggregations.
 
 ### Strategy
@@ -15,6 +17,7 @@ A library and CLI tool to find differences between a master data source and a sl
   - mysql
   - elasticsearch ~0.90.13, ~1.0
 
+#### MySQL
 
 ### Usage
 ```bash
@@ -41,7 +44,7 @@ Usage of ./datadiff:
  datadiff -interval 200 \
  -mdriver 'mysql' \
  -mconn 'root:root@(localhost:3306)/my_db_name?charset=utf8' \
- -mconf '{"table_name":"my_table_name", "field_name":"my_id_field_name"}' \
+ -mconf '{"table_name":"my_table_name", "field_name":"my_id_field_name", "conditions":["`active` = 1", "`user_id` = 100"]}' \
  -sdriver 'elasticsearch' \
  -sconn 'http://localhost:9200' \
  -sconf '{"index":"my_index_name", "type":"my_type_name", "field":"my_id_field_path"}'

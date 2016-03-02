@@ -1,5 +1,5 @@
 # datadiff
-A library and CLI tool to find differences between a master data source and a slave data source. Two data sources are equal if they contain the same numeric IDs. 
+A library and CLI tool to find differences between a master data source and a slave data source. Two data sources are equal if they contain the same numeric IDs. Rather than comparing record by record, this library compares [histogram](https://en.wikipedia.org/wiki/Histogram)-like aggregations.
 
 ### Strategy
  - Create a histogram of the numeric IDs on the master data source.

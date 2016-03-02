@@ -22,21 +22,22 @@ func main() {
 		panic(err)
 	}
 
-	//Do magic here
-	fmt.Println()
-	printThings(m, *o.initialInterval)
+	// Do magic here
 
-	fmt.Println()
-	printThings(s, *o.initialInterval)
-}
-
-func printThings(s datasource.DataSource, interval int) {
-	h, err := s.FetchHistogramAll(interval)
+	mh, err := m.FetchHistogramAll(*o.initialInterval)
 	if err != nil {
 		panic(err)
 	}
-	for _, b := range h.Bins {
-		fmt.Printf("%#v\n", b)
+
+	sh, err := s.FetchHistogramAll(*o.initialInterval)
+	if err != nil {
+		panic(err)
+	}
+
+	merged := mh.Merge(sh)
+
+	for _, b := range merged.UnresolvedPairs() {
+		fmt.Printf("Range: [%9d %9d]   |   Master: %9d   |   Slave: %9d   |   Diff: %9d\n", b.Key, b.Key+*o.initialInterval, b.CountFromMaster, b.CountFromSlave, b.DiffCount())
 	}
 }
 
@@ -103,8 +104,9 @@ func datasourceFactory(driver, connection, config string) (datasource.DataSource
 }
 
 type mySQLSpecificConfig struct {
-	TableName string `json:"table_name"`
-	FieldName string `json:"field_name"`
+	TableName  string   `json:"table_name"`
+	FieldName  string   `json:"field_name"`
+	Conditions []string `json:"conditions"`
 }
 
 func initMysql(connection, config string) (datasource.DataSource, error) {
@@ -129,9 +131,10 @@ func initMysql(connection, config string) (datasource.DataSource, error) {
 
 	// Return instance of datasource.DataSource
 	return datasource.MysqlDataSource{
-		DB:        db,
-		Tablename: c.TableName,
-		FieldName: c.FieldName,
+		DB:         db,
+		Tablename:  c.TableName,
+		FieldName:  c.FieldName,
+		Conditions: c.Conditions,
 	}, nil
 }
 

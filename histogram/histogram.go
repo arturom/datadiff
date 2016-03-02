@@ -37,6 +37,10 @@ func (p PairedBin) IsFull(capacity int) bool {
 	return p.CountFromMaster == capacity && p.CountFromSlave == capacity
 }
 
+func (p PairedBin) DiffCount() int {
+	return p.CountFromMaster - p.CountFromSlave
+}
+
 type PairedBinsMap map[int]*PairedBin
 
 func (m PairedBinsMap) InsertMasterBinCounts(b Bins) []int {

@@ -3,28 +3,28 @@ package datasource
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/arturom/datadiff/histogram"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type MysqlDataSource struct {
-	DB        *sql.DB
-	Tablename string
-	FieldName string
+	DB         *sql.DB
+	Tablename  string
+	FieldName  string
+	Conditions []string
 }
 
 func (s MysqlDataSource) FetchHistogramAll(interval int) (histogram.Histogram, error) {
-	q := fmt.Sprintf(
-		`SELECT
-    	   floor(%[3]s / %[1]d) * %[1]d AS BinKey,
-    	   count(%[3]s) AS Count
-        FROM
-	       %[2]s
-        GROUP BY
-	       BinKey`, interval, s.Tablename, s.FieldName)
+	q := query{}
+	q.selectField(fmt.Sprintf("FLOOR(%[1]s / %[2]d) * %[2]d AS `BinKey`", s.FieldName, interval)).
+		selectField("COUNT(*) AS `Count`").
+		from(s.Tablename).
+		where(s.Conditions...).
+		group("`BinKey`")
 
-	rows, err := s.DB.Query(q)
+	rows, err := s.DB.Query(q.string())
 
 	if err != nil {
 		return histogram.Histogram{}, err
@@ -48,18 +48,15 @@ func (s MysqlDataSource) FetchHistogramAll(interval int) (histogram.Histogram, e
 }
 
 func (s MysqlDataSource) FetchHistogramRange(gte, lt, interval int) (histogram.Histogram, error) {
-	q := fmt.Sprintf(
-		`SELECT
-    	   floor(%[3]s / %[1]d) * %[1]d AS BinKey,
-    	   count(%[3]s) AS Count
-        FROM
-	       %[2]s
-        WHERE
-            %[3]s >= %[4]d
-            AND %[3]s < %[5]d
-        GROUP BY
-	       BinKey`, interval, s.Tablename, s.FieldName, gte, lt)
-	rows, err := s.DB.Query(q)
+	q := query{}
+	q.selectField(fmt.Sprintf("FLOOR(%[1]s / %[2]d) * %[2]d AS `BinKey`", s.FieldName, interval)).
+		selectField("COUNT(*) AS `Count`").
+		from(s.Tablename).
+		where(fmt.Sprintf("`%s` >= %d", s.FieldName, gte), fmt.Sprintf("`%s` < %d", s.FieldName, lt)).
+		where(s.Conditions...).
+		group("`BinKey`")
+
+	rows, err := s.DB.Query(q.string())
 
 	if err != nil {
 		return histogram.Histogram{}, err
@@ -83,16 +80,13 @@ func (s MysqlDataSource) FetchHistogramRange(gte, lt, interval int) (histogram.H
 }
 
 func (s MysqlDataSource) FetchIdRange(gte, lt int) ([]int, error) {
-	q := fmt.Sprintf(
-		`SELECT
-    	   %[2]s
-        FROM
-	       %[1]s
-        WHERE
-            %[2]s >= %[3]d
-            AND %[2]s < %[4]d`, s.Tablename, s.FieldName, gte, lt)
+	q := query{}
+	q.selectField(fmt.Sprintf("`%s`", s.FieldName)).
+		from(s.Tablename).
+		where(fmt.Sprintf("`%s` >= %d", s.FieldName, gte), fmt.Sprintf("`%s` < %d", s.FieldName, lt)).
+		where(s.Conditions...)
 
-	rows, err := s.DB.Query(q)
+	rows, err := s.DB.Query(q.string())
 
 	if err != nil {
 		return nil, err
@@ -107,4 +101,47 @@ func (s MysqlDataSource) FetchIdRange(gte, lt int) ([]int, error) {
 	}
 
 	return ids, nil
+}
+
+type query struct {
+	Fields      []string
+	Table       string
+	Conditions  []string
+	GroupClause string
+}
+
+func (q *query) selectField(f string) *query {
+	q.Fields = append(q.Fields, f)
+	return q
+}
+
+func (q *query) from(t string) *query {
+	q.Table = t
+	return q
+}
+
+func (q *query) where(c ...string) *query {
+	for _, c := range c {
+		q.Conditions = append(q.Conditions, c)
+	}
+	return q
+}
+
+func (q *query) group(g string) *query {
+	q.GroupClause = g
+	return q
+}
+
+func (q query) string() string {
+	ret := fmt.Sprintf(
+		"SELECT %s FROM %s",
+		strings.Join(q.Fields, ", "),
+		q.Table)
+	if len(q.Conditions) != 0 {
+		ret += fmt.Sprintf(" WHERE %s", strings.Join(q.Conditions, " AND "))
+	}
+	if q.GroupClause != "" {
+		ret += fmt.Sprintf(" GROUP BY %s", q.GroupClause)
+	}
+	return ret
 }

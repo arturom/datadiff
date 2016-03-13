@@ -7,6 +7,7 @@ import (
 
 const facetLabel = "ids"
 
+// ES0DataSource uses an Elasticsearch 0.90 backend to implement the datasource interface
 type ES0DataSource struct {
 	Client    elastic.Client
 	IndexName string
@@ -14,20 +15,23 @@ type ES0DataSource struct {
 	FieldName string
 }
 
+// FetchHistogramAll fetches a histogram of all IDs in an index
 func (s ES0DataSource) FetchHistogramAll(interval int) (histogram.Histogram, error) {
-	query := s.HistogramQuery(interval)
-	return s.ProcessQuery(query, interval)
+	query := s.histogramQuery(interval)
+	return s.processQuery(query, interval)
 }
 
+// FetchHistogramRange fetches a histogram of a selective range of IDs in an index
 func (s ES0DataSource) FetchHistogramRange(gte, lt, interval int) (histogram.Histogram, error) {
-	query := s.HistogramQuery(interval).Query(s.RangeFilterQuery(gte, lt))
-	return s.ProcessQuery(query, interval)
+	query := s.histogramQuery(interval).Query(s.rangeFilterQuery(gte, lt))
+	return s.processQuery(query, interval)
 }
 
-func (s ES0DataSource) FetchIdRange(gte, lt int) ([]int, error) {
+// FetchIDRange fetches all the existing IDs in a given range
+func (s ES0DataSource) FetchIDRange(gte, lt int) ([]int, error) {
 	r, err := s.Client.
 		Search(s.IndexName).
-		Query(s.RangeFilterQuery(gte, lt)).
+		Query(s.rangeFilterQuery(gte, lt)).
 		Type(s.TypeName).
 		Fields(s.FieldName).
 		Size(lt - gte).
@@ -47,28 +51,28 @@ func (s ES0DataSource) FetchIdRange(gte, lt int) ([]int, error) {
 	return ids, nil
 }
 
-func (s ES0DataSource) Facet(interval int) elastic.Facet {
+func (s ES0DataSource) facet(interval int) elastic.Facet {
 	return elastic.
 		NewHistogramFacet().
 		Field(s.FieldName).
 		Interval(int64(interval))
 }
 
-func (s ES0DataSource) RangeFilterQuery(gte, lt int) elastic.Query {
+func (s ES0DataSource) rangeFilterQuery(gte, lt int) elastic.Query {
 	return elastic.
 		NewFilteredQuery(elastic.NewMatchAllQuery()).
 		Filter(elastic.NewRangeFilter(s.FieldName))
 }
 
-func (s ES0DataSource) HistogramQuery(interval int) *elastic.SearchService {
+func (s ES0DataSource) histogramQuery(interval int) *elastic.SearchService {
 	return s.Client.
 		Search(s.IndexName).
 		Type(s.TypeName).
 		Size(0).
-		Facet(facetLabel, s.Facet(interval))
+		Facet(facetLabel, s.facet(interval))
 }
 
-func (s ES0DataSource) ProcessQuery(query *elastic.SearchService, interval int) (histogram.Histogram, error) {
+func (s ES0DataSource) processQuery(query *elastic.SearchService, interval int) (histogram.Histogram, error) {
 	r, err := query.Do()
 	if err != nil {
 		return histogram.Histogram{}, err

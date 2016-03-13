@@ -9,8 +9,10 @@ import (
 	"gopkg.in/olivere/elastic.v1"
 )
 
+// DefaultFactory instantiates data sources
 type DefaultFactory struct{}
 
+// Create instantiates a data source based on the driver given
 func (f DefaultFactory) Create(driver, cnxString, config string) (DataSource, error) {
 	if driver == "mysql" {
 		return f.mySQLSource(cnxString, config)
@@ -21,6 +23,12 @@ func (f DefaultFactory) Create(driver, cnxString, config string) (DataSource, er
 	}
 
 	return nil, fmt.Errorf("No datasource matching type: %s", driver)
+}
+
+type mySQLOpts struct {
+	TableName  string   `json:"table_name"`
+	FieldName  string   `json:"field_name"`
+	Conditions []string `json:"conditions"`
 }
 
 func (f DefaultFactory) mySQLSource(cnxString string, config string) (DataSource, error) {
@@ -79,12 +87,6 @@ func (f DefaultFactory) elasticsearchSource(cnxString string, config string) (Da
 		TypeName:  c.TypeName,
 		FieldName: c.FieldName,
 	}, nil
-}
-
-type mySQLOpts struct {
-	TableName  string   `json:"table_name"`
-	FieldName  string   `json:"field_name"`
-	Conditions []string `json:"conditions"`
 }
 
 type elasticsearchOpts struct {

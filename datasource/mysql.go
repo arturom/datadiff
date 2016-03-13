@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/arturom/datadiff/histogram"
+	// Import the sql driver but use the sql interfaces
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -79,7 +80,7 @@ func (s MysqlDataSource) FetchHistogramRange(gte, lt, interval int) (histogram.H
 	}, nil
 }
 
-func (s MysqlDataSource) FetchIdRange(gte, lt int) ([]int, error) {
+func (s MysqlDataSource) FetchIDRange(gte, lt int) ([]int, error) {
 	q := query{}
 	q.selectField(fmt.Sprintf("`%s`", s.FieldName)).
 		from(s.Tablename).

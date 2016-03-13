@@ -65,17 +65,17 @@ type cliOpts struct {
 
 func (o *cliOpts) parseFlags() {
 	// Parse params for the Master data source
-	o.masterDriver = flag.String("mdriver", "", "Master driver [elasticsearch|mysql]")
-	o.masterConnection = flag.String("mconn", "", "Master connection string")
-	o.masterConfig = flag.String("mconf", "{}", "Master configuration string")
+	o.masterDriver = flag.String("mdriver", "", "Master source driver [elasticsearch|mysql]")
+	o.masterConnection = flag.String("mconn", "", "Master source connection string")
+	o.masterConfig = flag.String("mconf", "{}", "Master source configuration string")
 
 	// Parse params for the Slave data source
-	o.slaveDriver = flag.String("sdriver", "", "Slave driver [elasticsearch|mysql]")
-	o.slaveConnection = flag.String("sconn", "", "Slave connection string")
-	o.slaveConfig = flag.String("sconf", "{}", "Slave configuration string")
+	o.slaveDriver = flag.String("sdriver", "", "Slave source driver [elasticsearch|mysql]")
+	o.slaveConnection = flag.String("sconn", "", "Slave source connection string")
+	o.slaveConfig = flag.String("sconf", "{}", "Slave source configuration string")
 
 	// Parse universal params
-	o.initialInterval = flag.Int("interval", 1000, "Initial histogram interval")
+	o.initialInterval = flag.Int("interval", 1000, "Initial histogram interval size")
 
 	flag.Parse()
 }

@@ -1,7 +1,7 @@
 # datadiff
 [![Go Report Card](https://goreportcard.com/badge/github.com/arturom/datadiff)](https://goreportcard.com/report/github.com/arturom/datadiff)
 
-A library and CLI tool to find differences between a master data source and a slave data source. Two data sources are equal if they contain the same numeric IDs. Rather than comparing record by record, this library compares [histogram](https://en.wikipedia.org/wiki/Histogram)-like aggregations.
+A library and CLI tool to find differences between the records existing in master data source and the records existing in a slave data source. Two data sources are considered equal if they contain the same numeric IDs. This approach does not consider differences between other field values. Rather than comparing record by record, this library compares the [histograms](https://en.wikipedia.org/wiki/Histogram) of numeric IDs.
 
 ### Strategy
  - Create a histogram of the numeric IDs on the master data source.

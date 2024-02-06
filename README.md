@@ -1,40 +1,48 @@
 # datadiff
 [![Go Report Card](https://goreportcard.com/badge/github.com/arturom/datadiff)](https://goreportcard.com/report/github.com/arturom/datadiff)
 
-A library and CLI tool to find differences between the records existing in master data source and the records existing in a slave data source. Two data sources are considered equal if they contain the same numeric IDs. This approach does not consider differences between other field values. Rather than comparing record by record, this library compares the [histograms](https://en.wikipedia.org/wiki/Histogram) of numeric IDs.
+Datadiff is a library and CLI tool to find differences between two data sources. This is useful when there is a primary data source and a secondary data source and they both need to contain the same records.
+
+This tool considers two data sources to be qual if they contain the same numeric IDs. This approach does not compare any other field value.
+
 
 ### Strategy
- - Create a histogram of the numeric IDs on the master data source.
- - Create a histogram of the numeric IDs on the slave data source.
+Rather than comparing record by record, this library compares the [histograms](https://en.wikipedia.org/wiki/Histogram) of the numeric IDs from both sources. These are the steps taken:
+
+ - Create a histogram of the numeric IDs from the primary data source.
+ - Create a histogram of the numeric IDs from the secondary data source.
  - Merge and compare the histograms.
  - If the bin capacities are full, mark this range as resolved.
  - Fetch the histogram of the unresolved bins with smaller bin sizes.
  - Merge and compare the histograms.
  - Fetch the ids of the unresolved bins.
- - Diff the numeric IDs of unresolved bins and output the results.
+ - Compare the numeric IDs of unresolved bins and output the results.
 
 ### Supported Data Sources
   - mysql
-  - elasticsearch ~0.90.13, ~1.0
+  - elasticsearch
 
 ### Usage
+Run `datadiff -h` to get usage information
 ```bash
 $ ./datadiff -h
+```
+```
 Usage of ./datadiff:
   -interval int
         Initial histogram interval (default 1000)
   -mconf string
-        Master configuration string (default "{}")
+        Primary configuration string (default "{}")
   -mconn string
-        Master connection string
+        Primary connection string
   -mdriver string
-        Master driver [elasticsearch|mysql]
+        Primary driver [elasticsearch|mysql]
   -sconf string
-        Slave configuration string (default "{}")
+        Secondary configuration string (default "{}")
   -sconn string
-        Slave connection string
+        Secondary connection string
   -sdriver string
-        Slave driver [elasticsearch|mysql]
+        Secondary driver [elasticsearch|mysql]
 ```
 
 ### Sample Command Line Usage
@@ -47,3 +55,9 @@ Usage of ./datadiff:
  -sconn 'http://localhost:9200' \
  -sconf '{"index":"my_index_name", "type":"my_type_name", "field":"my_id_field_path"}'
  ```
+
+
+```
+mysql://root:root@localhost:3306/dbname?table=tablename&field=id
+es://http://localhost:9200?index=indexname&field=id
+```

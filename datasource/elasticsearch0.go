@@ -9,10 +9,19 @@ const facetLabel = "ids"
 
 // ES0DataSource uses an Elasticsearch 0.90 backend to implement the datasource interface
 type ES0DataSource struct {
-	Client    elastic.Client
-	IndexName string
-	TypeName  string
-	FieldName string
+	client    *elastic.Client
+	indexName string
+	typeName  string
+	fieldName string
+}
+
+func NewES0DataSource(client *elastic.Client, index, typeName, field string) *ES0DataSource {
+	return &ES0DataSource{
+		client:    client,
+		indexName: index,
+		typeName:  typeName,
+		fieldName: field,
+	}
 }
 
 // FetchHistogramAll fetches a histogram of all IDs in an index
@@ -29,11 +38,11 @@ func (s ES0DataSource) FetchHistogramRange(gte, lt, interval int) (histogram.His
 
 // FetchIDRange fetches all the existing IDs in a given range
 func (s ES0DataSource) FetchIDRange(gte, lt int) ([]int, error) {
-	r, err := s.Client.
-		Search(s.IndexName).
+	r, err := s.client.
+		Search(s.indexName).
 		Query(s.rangeFilterQuery(gte, lt)).
-		Type(s.TypeName).
-		Fields(s.FieldName).
+		Type(s.typeName).
+		Fields(s.fieldName).
 		Size(lt - gte).
 		Do()
 	if err != nil {
@@ -45,7 +54,7 @@ func (s ES0DataSource) FetchIDRange(gte, lt int) ([]int, error) {
 	ids := make([]int, len(*hits))
 
 	for i, h := range *hits {
-		ids[i] = int(h.Fields[s.FieldName].(float64))
+		ids[i] = int(h.Fields[s.fieldName].(float64))
 	}
 
 	return ids, nil
@@ -54,20 +63,20 @@ func (s ES0DataSource) FetchIDRange(gte, lt int) ([]int, error) {
 func (s ES0DataSource) facet(interval int) elastic.Facet {
 	return elastic.
 		NewHistogramFacet().
-		Field(s.FieldName).
+		Field(s.fieldName).
 		Interval(int64(interval))
 }
 
 func (s ES0DataSource) rangeFilterQuery(gte, lt int) elastic.Query {
 	return elastic.
 		NewFilteredQuery(elastic.NewMatchAllQuery()).
-		Filter(elastic.NewRangeFilter(s.FieldName))
+		Filter(elastic.NewRangeFilter(s.fieldName))
 }
 
 func (s ES0DataSource) histogramQuery(interval int) *elastic.SearchService {
-	return s.Client.
-		Search(s.IndexName).
-		Type(s.TypeName).
+	return s.client.
+		Search(s.indexName).
+		Type(s.typeName).
 		Size(0).
 		Facet(facetLabel, s.facet(interval))
 }

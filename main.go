@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/arturom/datadiff/datasource"
+	"github.com/arturom/datadiff/processing"
 )
 
 func main() {
@@ -13,66 +13,53 @@ func main() {
 	o.parseFlags()
 
 	// Initialize datasource factory
-	f := datasource.DefaultFactory{}
+	f := datasource.DataSourceFactory{}
 
-	// Initialize master data source
-	master, err := f.Create(
+	// Initialize primary data source
+	primary, err := f.Create(
 		*o.masterDriver, *o.masterConnection, *o.masterConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	// Initialize slave data source
-	slave, err := f.Create(
+	// Initialize secondary data source
+	secondary, err := f.Create(
 		*o.slaveDriver, *o.slaveConnection, *o.slaveConfig)
 	if err != nil {
 		panic(err)
 	}
 
 	// Do magic here
-	mh, err := master.FetchHistogramAll(*o.initialInterval)
+	err = processing.Process(primary, secondary, *o.initialInterval)
 	if err != nil {
 		panic(err)
-	}
-
-	sh, err := slave.FetchHistogramAll(*o.initialInterval)
-	if err != nil {
-		panic(err)
-	}
-
-	merged := mh.Merge(sh)
-
-	for _, b := range merged.UnresolvedPairs() {
-		fmt.Printf(
-			"Range: [%9d %9d]   |   Master: %9d   |   Slave: %9d   |   Diff: %9d\n",
-			b.Key, b.Key+*o.initialInterval, b.CountFromMaster, b.CountFromSlave, b.DiffCount())
 	}
 }
 
 type cliOpts struct {
 	initialInterval *int
 
-	// Options for master source
+	// Options for primary source
 	masterDriver     *string
 	masterConnection *string
 	masterConfig     *string
 
-	// Options for slave source
+	// Options for secondary source
 	slaveDriver     *string
 	slaveConnection *string
 	slaveConfig     *string
 }
 
 func (o *cliOpts) parseFlags() {
-	// Parse params for the Master data source
-	o.masterDriver = flag.String("mdriver", "", "Master source driver [elasticsearch|mysql]")
-	o.masterConnection = flag.String("mconn", "", "Master source connection string")
-	o.masterConfig = flag.String("mconf", "{}", "Master source configuration string")
+	// Parse params for the primary data source
+	o.masterDriver = flag.String("mdriver", "", "Primary source driver [elasticsearch|mysql]")
+	o.masterConnection = flag.String("mconn", "", "Primary source connection string")
+	o.masterConfig = flag.String("mconf", "{}", "Primary source configuration string")
 
-	// Parse params for the Slave data source
-	o.slaveDriver = flag.String("sdriver", "", "Slave source driver [elasticsearch|mysql]")
-	o.slaveConnection = flag.String("sconn", "", "Slave source connection string")
-	o.slaveConfig = flag.String("sconf", "{}", "Slave source configuration string")
+	// Parse params for the secondary data source
+	o.slaveDriver = flag.String("sdriver", "", "Secondary source driver [elasticsearch|mysql]")
+	o.slaveConnection = flag.String("sconn", "", "Secondary source connection string")
+	o.slaveConfig = flag.String("sconf", "{}", "Secondary source configuration string")
 
 	// Parse universal params
 	o.initialInterval = flag.Int("interval", 1000, "Initial histogram interval size")

@@ -1,12 +1,17 @@
 package processing
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/arturom/datadiff/datasource"
+	"github.com/arturom/datadiff/histogram"
 )
 
 func Process(primary, secondary datasource.DataSource, interval int) error {
+	fmt.Printf("FetchAll    Interval: %2d\n", interval)
 	priHistogram, err := primary.FetchHistogramAll(interval)
 	if err != nil {
 		return err
@@ -15,9 +20,73 @@ func Process(primary, secondary datasource.DataSource, interval int) error {
 	if err != nil {
 		return err
 	}
+	return processHistograms(priHistogram, secHistogram, primary, secondary, interval)
+}
 
+func fetchRange(primary, secondary datasource.DataSource, gte, lt, interval int) error {
+	fmt.Printf("FetchRange  Interval: %3d  gte: %3d  lt: %3d\n", interval, gte, lt)
+	priHistogram, err := primary.FetchHistogramRange(gte, lt, interval)
+	if err != nil {
+		return err
+	}
+	secHistogram, err := secondary.FetchHistogramRange(gte, lt, interval)
+	if err != nil {
+		return err
+	}
+	return processHistograms(priHistogram, secHistogram, primary, secondary, interval)
+}
+
+func processHistograms(priHistogram, secHistogram histogram.Histogram, primary, secondary datasource.DataSource, interval int) error {
 	merged := priHistogram.Merge(secHistogram)
+	printMergedSummary(merged, interval)
+	for _, pair := range merged.UnresolvedPairs() {
+		err := fetchNext(primary, secondary, pair.Key, pair.Key+interval, interval/10)
+		if err != nil {
+			return nil
+		}
+	}
+	return nil
+}
 
+func fetchIDs(primary, secondary datasource.DataSource, gte, lt int) error {
+	fmt.Printf("FetchIDs   gte: %3d  lt: %3d\n", gte, lt)
+	primaryIDs, err := primary.FetchIDRange(gte, lt)
+	if err != nil {
+		return err
+	}
+	secondaryIds, err := secondary.FetchIDRange(gte, lt)
+	if err != nil {
+		return err
+	}
+
+	m := make(map[int]int)
+	for _, id := range primaryIDs {
+		m[id] = -1
+	}
+	for _, id := range secondaryIds {
+		_, ok := m[id]
+		if ok {
+			m[id] = 0
+		} else {
+			m[id] = 1
+		}
+	}
+
+	w := csv.NewWriter(os.Stdout)
+	for id, flag := range m {
+		if flag != 0 {
+			values := []string{strconv.Itoa(id), strconv.Itoa(flag)}
+			if err = w.Write(values); err != nil {
+				return nil
+			}
+		}
+	}
+	w.Flush()
+
+	return nil
+}
+
+func printMergedSummary(merged histogram.MergedHistogram, interval int) {
 	fmt.Printf(
 		"|%9s | %9s | %9s | %9s | %9s |\n",
 		"Min", "Max", "Primary", "Secondary", "Diff")
@@ -29,9 +98,13 @@ func Process(primary, secondary datasource.DataSource, interval int) error {
 			b.Key, b.Key+interval-1, b.CountFromPrimary, b.CountFromSecondary, diff)
 	}
 
-	return nil
 }
 
-func processRange(primary, secondary datasource.DataSource, gte, lt, interval int) error {
-	return nil
+func fetchNext(primary, secondary datasource.DataSource, gte, lt, interval int) error {
+	fmt.Printf("FetchNext   Interval: %3d  gte: %3d  lt: %3d\n", interval, gte, lt)
+	if interval > 10 {
+		return fetchRange(primary, secondary, gte, lt, interval)
+	} else {
+		return fetchIDs(primary, secondary, gte, lt)
+	}
 }

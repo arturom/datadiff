@@ -12,6 +12,11 @@ func main() {
 	o := cliOpts{}
 	o.parseFlags()
 
+	interval := *o.initialInterval
+	if interval != 10 && interval != 100 && interval != 1000 && interval != 10000 {
+		panic("Interval must be a multiple of 10 between 10 and 10,000")
+	}
+
 	// Initialize datasource factory
 	f := datasource.DataSourceFactory{}
 

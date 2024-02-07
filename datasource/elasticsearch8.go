@@ -80,6 +80,14 @@ func createHistogramRequest(field string, interval int) *search.Request {
 	}
 }
 
+func createIDRequest(field string, gte, lt int) *search.Request {
+	return &search.Request{
+		Size:    some.Int(lt - gte),
+		Query:   createRangeQuery(gte, lt),
+		Source_: field,
+	}
+}
+
 func marshallRequest(req *search.Request) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(req)
@@ -128,4 +136,17 @@ func extractHistogram(agg *types.HistogramAggregate, capacity int) h.Histogram {
 		Bins:        bins,
 		BinCapacity: capacity,
 	}
+}
+
+func extractIDsFromResponse(res *search.Response, field string) ([]int, error) {
+	result := make([]int, len(res.Hits.Hits))
+	for i, hit := range res.Hits.Hits {
+		source := make(map[string]int)
+		err := json.Unmarshal(hit.Source_, &source)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = source[field]
+	}
+	return result, nil
 }

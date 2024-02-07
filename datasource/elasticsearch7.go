@@ -1,9 +1,7 @@
 package datasource
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 
 	h "github.com/arturom/datadiff/histogram"
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
@@ -22,16 +20,6 @@ func NewElasticsearch7DataSource(client *elasticsearch.Client, index, field stri
 		index:  index,
 		field:  field,
 	}
-}
-
-func marshallRequestx(field string, interval int) (*bytes.Buffer, error) {
-	var buf bytes.Buffer
-	hist := createHistogramRequest(field, interval)
-	err := json.NewEncoder(&buf).Encode(hist)
-	if err != nil {
-		return nil, err
-	}
-	return &buf, nil
 }
 
 func (es Elasticsearch7DataSource) FetchHistogramAll(interval int) (h.Histogram, error) {

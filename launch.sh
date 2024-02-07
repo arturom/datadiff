@@ -1,5 +1,5 @@
 ./datadiff \
-  -interval 1000 \
+  -interval 10000 \
   -mdriver 'es7' \
   -mconn 'http://localhost:9200' \
   -mconf '{"index":"i1", "field":"id"}' \

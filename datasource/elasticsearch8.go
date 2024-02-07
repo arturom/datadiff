@@ -104,7 +104,10 @@ func readBody(body io.ReadCloser) (*search.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	res.UnmarshalJSON(bytes)
+	err = res.UnmarshalJSON(bytes)
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 
@@ -141,12 +144,16 @@ func extractHistogram(agg *types.HistogramAggregate, capacity int) h.Histogram {
 func extractIDsFromResponse(res *search.Response, field string) ([]int, error) {
 	result := make([]int, len(res.Hits.Hits))
 	for i, hit := range res.Hits.Hits {
-		source := make(map[string]int)
+		source := make(map[string]json.Number)
 		err := json.Unmarshal(hit.Source_, &source)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = source[field]
+		val, err := source[field].Int64()
+		if err != nil {
+			return nil, err
+		}
+		result[i] = int(val)
 	}
 	return result, nil
 }

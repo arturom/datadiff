@@ -111,7 +111,9 @@ func (f DataSourceFactory) elasticsearch7Source(cnxString string, config string)
 	if err != nil {
 		return nil, err
 	}
-	client, err := es7.NewDefaultClient()
+	client, err := es7.NewClient(es7.Config{
+		Addresses: []string{cnxString},
+	})
 	if err != nil {
 		return nil, err
 	}
